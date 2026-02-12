@@ -1,5 +1,10 @@
 #include <Servo.h>
 
+// ============= COUNTERS =================
+int redCount = 0;
+int blueCount = 0;
+int greenCount = 0;
+
 // ============= GEAR MOTOR ===============
 #define MOTOR_SPEED_PIN 5  // D1 
 #define MOTOR_DIR_PIN 4    // D2 
@@ -128,6 +133,7 @@ void sortObjects(Color c) {
       delay(2000);
       stopConveyor();
       servo.write(45);
+      redCount++;
       break;
     case BLUE:
       Serial.println("Sorting to BLUE bin...");
@@ -136,9 +142,11 @@ void sortObjects(Color c) {
       delay(3000);
       stopConveyor();
       servo.write(45);
+      blueCount++;
       break;
     case GREEN:
       Serial.println("Sorting to GREEN bin...");
+      greenCount++;
       break;
     default:
       Serial.println("Unknown Color");
