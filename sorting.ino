@@ -25,11 +25,8 @@ enum Color {
 };
 
 // ============= SERVO ====================
-Servo redServo;
-Servo blueServo;
-
-#define RED_SERVO_PIN 0 // D3
-#define BLUE_SERVO_PIN 2 // D4
+Servo servo;
+#define SERVO_PIN 2 // D4
 
 void setup() {
   Serial.begin(9600);
@@ -41,10 +38,8 @@ void setup() {
   pinMode(S3_PIN, OUTPUT);
   pinMode(OUT_PIN, INPUT);
 
-  redServo.attach(RED_SERVO_PIN);
-  blueServo.attach(BLUE_SERVO_PIN);
-  redServo.write(0);
-  blueServo.write(0);
+  servo.attach(SERVO_PIN,500,2400);
+  servo.write(45);
 
   startConveyor();
 }
@@ -128,15 +123,22 @@ void sortObjects(Color c) {
   switch(c) {
     case RED:
       Serial.println("Sorting to RED bin...");
-      redServo.write(90);
-      delay(1000);
-      redServo.write(0);
+      servo.write(90);
+      startConveyor();
+      delay(2000);
+      stopConveyor();
+      servo.write(45);
       break;
     case BLUE:
       Serial.println("Sorting to BLUE bin...");
-      blueServo.write(90);
-      delay(1000);
-      blueServo.write(0);
+      servo.write(180);
+      startConveyor();
+      delay(3000);
+      stopConveyor();
+      servo.write(45);
+      break;
+    case GREEN:
+      Serial.println("Sorting to GREEN bin...");
       break;
     default:
       Serial.println("Unknown Color");
