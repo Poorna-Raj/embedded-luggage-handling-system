@@ -1,3 +1,5 @@
+#include <Servo.h>
+
 // ============= GEAR MOTOR ===============
 #define MOTOR_SPEED_PIN 5  // D1 
 #define MOTOR_DIR_PIN 4    // D2 
@@ -22,6 +24,13 @@ enum Color {
   UNKNOWN
 };
 
+// ============= SERVO ====================
+Servo redServo;
+Servo blueServo;
+
+#define RED_SERVO_PIN 0 // D3
+#define BLUE_SERVO_PIN 2 // D4
+
 void setup() {
   Serial.begin(9600);
   
@@ -32,6 +41,11 @@ void setup() {
   pinMode(S3_PIN, OUTPUT);
   pinMode(OUT_PIN, INPUT);
 
+  redServo.attach(RED_SERVO_PIN);
+  blueServo.attach(BLUE_SERVO_PIN);
+  redServo.write(0);
+  blueServo.write(0);
+
   startConveyor();
 }
 
@@ -40,12 +54,11 @@ void loop() {
     stopConveyor();
     
     Serial.println("--- Reading Color ---");
+    delay(500);
     Color detectedColor = readColor();
-    
-    // Using the enum in logic
     printColorName(detectedColor);
-    
-    delay(2000); 
+
+    sortObjects(detectedColor); 
     startConveyor();
   }
 }
@@ -109,4 +122,24 @@ bool isIrDetected(const int pin) {
     if (!digitalRead(pin)) return true;
   }
   return false;
+}
+
+void sortObjects(Color c) {
+  switch(c) {
+    case RED:
+      Serial.println("Sorting to RED bin...");
+      redServo.write(90);
+      delay(1000);
+      redServo.write(0);
+      break;
+    case BLUE:
+      Serial.println("Sorting to BLUE bin...");
+      blueServo.write(90);
+      delay(1000);
+      blueServo.write(0);
+      break;
+    default:
+      Serial.println("Unknown Color");
+      break;
+  }
 }
