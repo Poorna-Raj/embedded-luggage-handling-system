@@ -1,9 +1,14 @@
 #include <Servo.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 // ============= COUNTERS =================
 int redCount = 0;
 int blueCount = 0;
 int greenCount = 0;
+
+// ============= LCD Displays =============
+LiquidCrystal_I2C lcd(0x27,16,2);
 
 // ============= GEAR MOTOR ===============
 #define MOTOR_SPEED_PIN 5  // D1 
@@ -36,6 +41,9 @@ Servo servo;
 void setup() {
   Serial.begin(9600);
   
+  lcd.init();
+  lcd.backlight();
+
   pinMode(MOTOR_SPEED_PIN, OUTPUT);
   pinMode(MOTOR_DIR_PIN, OUTPUT);
   pinMode(MAIN_IR, INPUT);
@@ -59,6 +67,7 @@ void loop() {
     printColorName(detectedColor);
 
     sortObjects(detectedColor); 
+    updateLcdDisplay();
     startConveyor();
   }
 }
@@ -152,4 +161,21 @@ void sortObjects(Color c) {
       Serial.println("Unknown Color");
       break;
   }
+}
+
+void updateLcdDisplay() {
+  lcd.setCursor(0,0);
+  lcd.print("R=");
+  lcd.print(redCount);
+  lcd.print("   ");
+
+  lcd.setCursor(5,0);
+  lcd.print("B=");
+  lcd.print(blueCount);
+  lcd.print("   ");
+
+  lcd.setCursor(10,0);
+  lcd.print("G=");
+  lcd.print(greenCount);
+  lcd.print("   ");
 }
