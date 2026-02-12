@@ -1,4 +1,4 @@
-#include <Servo.h>
+#include <ESP32Servo.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
@@ -11,20 +11,20 @@ int greenCount = 0;
 LiquidCrystal_I2C lcd(0x27,16,2);
 
 // ============= GEAR MOTOR ===============
-#define MOTOR_SPEED_PIN 5  // D1 
-#define MOTOR_DIR_PIN 4    // D2 
+#define MOTOR_SPEED_PIN 25  // D25 
+#define MOTOR_DIR_PIN 26    // D26 
 #define SET_SPEED 100      
 
 bool isConveyorRunning = false;
 
 // ============= IR SENSOR ================
-#define MAIN_IR 16 // D0
+#define MAIN_IR 33 // D33
 const int DEBOUNCE_DELAY = 50;
 
 // ============= COLOR SENSOR =============
-#define S2_PIN 14  // D5
-#define S3_PIN 12  // D6
-#define OUT_PIN 13 // D7
+#define S2_PIN 18  // D18
+#define S3_PIN 19  // D19
+#define OUT_PIN 34 // D34
 
 // ============= COLOR ENUM ===============
 enum Color {
@@ -36,10 +36,10 @@ enum Color {
 
 // ============= SERVO ====================
 Servo servo;
-#define SERVO_PIN 2 // D4
+#define SERVO_PIN 27 // D27
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   
   lcd.init();
   lcd.backlight();
@@ -179,3 +179,4 @@ void updateLcdDisplay() {
   lcd.print(greenCount);
   lcd.print("   ");
 }
+
