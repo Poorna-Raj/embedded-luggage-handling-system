@@ -38,6 +38,21 @@ enum Color {
 Servo servo;
 #define SERVO_PIN 27 // D27
 
+// ============= BIN IR ===================
+#define RED_BIN_IR 32
+#define BLUE_BIN_IR 35
+#define GREEN_BIN_IR 39
+
+enum Bins {
+  RED_BIN,
+  BLUE_BIN,
+  GREEN_BIN,
+  NONE
+}
+
+bool waitingForForklift = false;
+Bins fullBin = NONE;
+
 void setup() {
   Serial.begin(115200);
   
@@ -46,19 +61,33 @@ void setup() {
 
   pinMode(MOTOR_SPEED_PIN, OUTPUT);
   pinMode(MOTOR_DIR_PIN, OUTPUT);
+  
   pinMode(MAIN_IR, INPUT);
+  
   pinMode(S2_PIN, OUTPUT);
   pinMode(S3_PIN, OUTPUT);
   pinMode(OUT_PIN, INPUT);
 
-  servo.attach(SERVO_PIN,500,2400);
+  servo.attach(SERVO_PIN, 500, 2400);
   servo.write(45);
+
+  pinMode(RED_BIN_IR, INPUT);
+  pinMode(BLUE_BIN_IR, INPUT);
+  pinMode(GREEN_BIN_IR, INPUT);
 
   startConveyor();
 }
 
 void loop() {
-  if (isConveyorRunning && isIrDetected(MAIN_IR)) {
+  monitorBins();
+
+  if(waitingForForklift) {
+    stopConveyor();
+    displayFullBin();
+    return;
+  }
+
+  if (isConveyorRunning && isIrDetected(MAIN_IR) && fullBin == NONE) {
     stopConveyor();
     
     Serial.println("--- Reading Color ---");
@@ -186,4 +215,45 @@ void waitUntilObjectLeaves() {
   while (!digitalRead(MAIN_IR)) {
     delay(10);
   }
+}
+
+void monitorBins() {
+  if(waitingForForklift)
+    return;
+
+  if(isIrDetected(RED_BIN_IR)) {
+    fullBin = RED_BIN;
+    waitingForForklift = true;
+  }
+  else if(isIrDetected(BLUE_BIN_IR)) {
+    fullBin = BLUE_BIN;
+    waitingForForklift = true;
+  }
+  else if(isIrDetected(GREEN_BIN_IR)) {
+    fullBin = GREEN_BIN;
+    waitingForForklift = true;
+  }
+}
+
+void displayFullBin() {
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("BIN FULL:");
+
+  lcd.setCursor(0,1);
+  switch(fullBin) {
+    case RED_BIN:   lcd.print("RED"); break;
+    case BLUE_BIN:  lcd.print("BLUE"); break;
+    case GREEN_BIN: lcd.print("GREEN"); break;
+    default: break;
+  }
+}
+
+// call this method when the bin got replaced by the forklift
+void forkliftReplacedBin() {
+  waitingForForklift = false;
+  fullBin = NONE;
+  lcd.clear();
+  updateLcdDisplay();
+  startConveyor();
 }
