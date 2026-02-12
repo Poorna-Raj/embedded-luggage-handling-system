@@ -68,6 +68,8 @@ void loop() {
 
     sortObjects(detectedColor); 
     updateLcdDisplay();
+
+    waitUntilObjectLeaves();
     startConveyor();
   }
 }
@@ -180,3 +182,8 @@ void updateLcdDisplay() {
   lcd.print("   ");
 }
 
+void waitUntilObjectLeaves() {
+  while (!digitalRead(MAIN_IR)) {
+    delay(10);
+  }
+}
