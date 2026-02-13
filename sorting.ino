@@ -9,6 +9,7 @@ int greenCount = 0;
 
 // ============= LCD Displays =============
 LiquidCrystal_I2C lcd(0x27,16,2);
+bool binFullShown = false;
 
 // ============= GEAR MOTOR ===============
 #define MOTOR_SPEED_PIN 25  // D25 
@@ -48,7 +49,7 @@ enum Bins {
   BLUE_BIN,
   GREEN_BIN,
   NONE
-}
+};
 
 bool waitingForForklift = false;
 Bins fullBin = NONE;
@@ -83,7 +84,10 @@ void loop() {
 
   if(waitingForForklift) {
     stopConveyor();
-    displayFullBin();
+    if(!binFullShown) {
+      displayFullBin();
+      binFullShown = true;
+    }
     return;
   }
 
@@ -253,6 +257,9 @@ void displayFullBin() {
 void forkliftReplacedBin() {
   waitingForForklift = false;
   fullBin = NONE;
+
+  binFullShown = false;
+
   lcd.clear();
   updateLcdDisplay();
   startConveyor();
