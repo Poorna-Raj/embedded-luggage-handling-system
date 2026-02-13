@@ -1,6 +1,17 @@
 #include <ESP32Servo.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <WiFi.h>
+
+// ============= WiFi =====================
+bool forkliftConnected = false;
+bool binNotificationSent = false;
+
+const char* ssid = "SLT-Fiber-2.4G-0A6C";
+const char* password = "873399703%";
+
+WiFiServer server(5000);
+WiFiClient forkliftClient;
 
 // ============= COUNTERS =================
 int redCount = 0;
@@ -9,7 +20,6 @@ int greenCount = 0;
 
 // ============= LCD Displays =============
 LiquidCrystal_I2C lcd(0x27,16,2);
-bool binFullShown = false;
 
 // ============= GEAR MOTOR ===============
 #define MOTOR_SPEED_PIN 25  // D25 
@@ -76,17 +86,27 @@ void setup() {
   pinMode(BLUE_BIN_IR, INPUT);
   pinMode(GREEN_BIN_IR, INPUT);
 
-  startConveyor();
+  connectWiFi();
+  server.begin();
+  Serial.println("Waiting for Forklift Connection");
 }
 
 void loop() {
+  handleForkliftConnection();
+  if(!forkliftConnected) {
+    stopConveyor();
+    return;
+  }
+
   monitorBins();
 
   if(waitingForForklift) {
     stopConveyor();
-    if(!binFullShown) {
+
+    if(!binNotificationSent) {
+      sendBinFullMessage();
       displayFullBin();
-      binFullShown = true;
+      binNotificationSent = true;
     }
     return;
   }
@@ -157,7 +177,6 @@ void stopConveyor() {
   analogWrite(MOTOR_SPEED_PIN, 0); 
   digitalWrite(MOTOR_DIR_PIN, LOW);
   isConveyorRunning = false;
-  Serial.println("Conveyor Stopped!");
 }
 
 bool isIrDetected(const int pin) {
@@ -258,9 +277,82 @@ void forkliftReplacedBin() {
   waitingForForklift = false;
   fullBin = NONE;
 
-  binFullShown = false;
-
   lcd.clear();
   updateLcdDisplay();
   startConveyor();
+}
+
+void connectWiFi() {
+  WiFi.begin(ssid,password);
+  Serial.println("Connecting to WiFi...");
+
+  while(WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi Connected!");
+  Serial.println("IP Address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void handleForkliftConnection() {
+
+  // Check if a new client is trying to connect
+  WiFiClient newClient = server.available();
+
+  if (newClient) {
+    Serial.println("New Forklift Connected!");
+
+    // Close old client if any
+    if (forkliftClient) {
+      forkliftClient.stop();
+    }
+
+    forkliftClient = newClient;
+    forkliftConnected = true;
+    startConveyor();
+  }
+
+  // If client disconnected
+  if (forkliftClient && !forkliftClient.connected()) {
+    Serial.println("Forklift Disconnected!");
+    forkliftClient.stop();
+    forkliftConnected = false;
+    stopConveyor();
+  }
+
+  // Read messages
+  if (forkliftClient && forkliftClient.connected() && forkliftClient.available()) {
+
+    String message = forkliftClient.readStringUntil('\n');
+    message.trim();
+
+    Serial.print("Received: ");
+    Serial.println(message);
+
+    if (message == "DONE") {
+      forkliftReplacedBin();
+      binNotificationSent = false;
+    }
+  }
+}
+
+void sendBinFullMessage() {
+  if(!forkliftClient || !forkliftClient.connected()) {
+    Serial.println("Forklift not connected for communication");
+    return;
+  }
+
+  String message = "BIN_";
+  switch(fullBin) {
+    case RED_BIN: message += "RED"; break;
+    case BLUE_BIN: message += "BLUE"; break;
+    case GREEN_BIN: message += "GREEN"; break;
+    default: return;
+  }
+
+  forkliftClient.println(message);
+  Serial.print("Sent to Forklift: ");
+  Serial.println(message);
 }
