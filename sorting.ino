@@ -344,11 +344,11 @@ void sendBinFullMessage() {
     return;
   }
 
-  String message = "BIN_";
+  String message = "BIN_FULL:";
   switch(fullBin) {
-    case RED_BIN: message += "RED"; break;
-    case BLUE_BIN: message += "BLUE"; break;
-    case GREEN_BIN: message += "GREEN"; break;
+    case RED_BIN: message += "1"; break;
+    case BLUE_BIN: message += "2"; break;
+    case GREEN_BIN: message += "3"; break;
     default: return;
   }
 
