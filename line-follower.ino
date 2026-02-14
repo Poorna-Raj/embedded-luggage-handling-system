@@ -9,8 +9,8 @@
 
 // =========== IR Sensors =========
 #define IR_LEFT D4
-#define IR_CENTER D4
-#define IR_RIGHT D4
+#define IR_CENTER D3
+#define IR_RIGHT D0
 
 // =========== Speed ==============
 #define BASE_SPEED 180
