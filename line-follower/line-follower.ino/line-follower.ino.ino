@@ -1,13 +1,28 @@
+#include <ESP8266WiFi.h>
 
-#define IN1 D1 // Left motor forward
-#define IN3 D4 // Right motor forward
+// ===== WIFI SETTINGS =====
+const char* ssid = "SLT-Fiber-2.4G-0A6C";
+const char* password = "873399703%";
 
-#define ENA D5 // Left motor PWM speed
-#define ENB D6 // Right motor PWM speed
+const char* serverIP = "192.168.1.5";   // CHANGE THIS
+const uint16_t serverPort = 5000;        // CHANGE THIS
 
-#define IR_LEFT D7
+WiFiClient client;
+
+// ===== MOTOR PINS =====
+#define IN1 D1
+#define IN3 D4
+
+#define ENA D5
+#define ENB D6
+
+// ===== IR SENSORS =====
+#define IR_LEFT   D7
 #define IR_CENTER D2
-#define IR_RIGHT D0
+#define IR_RIGHT  D0
+
+// ===== BUTTON =====
+#define DONE_BUTTON D3   // connect push button to D3 and GND
 
 // ===== MOTOR SPEED =====
 #define FORWARD_SPEED 150
@@ -16,6 +31,9 @@
 
 // ==================== SETUP ====================
 void setup() {
+
+  Serial.begin(9600);
+
   pinMode(IN1, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(ENA, OUTPUT);
@@ -25,55 +43,70 @@ void setup() {
   pinMode(IR_CENTER, INPUT);
   pinMode(IR_RIGHT, INPUT);
 
-  Serial.begin(9600);
-  Serial.println("Line follower started (3 sensor normal logic)");
+  pinMode(DONE_BUTTON, INPUT_PULLUP);  // button to GND
+
+  // ===== CONNECT WIFI =====
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("\nWiFi connected");
+  Serial.print("IP: ");
+  Serial.println(WiFi.localIP());
+
+  // ===== CONNECT TO TCP SERVER =====
+  connectToServer();
 }
 
 // ==================== LOOP ====================
 void loop() {
 
+  // Reconnect if disconnected
+  if (!client.connected()) {
+    connectToServer();
+  }
+
+  // ===== RECEIVE DATA FROM SERVER =====
+  if (client.available()) {
+    String message = client.readStringUntil('\n');
+    Serial.print("Received: ");
+    Serial.println(message);
+  }
+
+  // ===== BUTTON SEND DONE =====
+  if (digitalRead(DONE_BUTTON) == LOW) {
+    client.println("DONE");
+    Serial.println("Sent: DONE");
+    delay(500);  // debounce delay
+  }
+
+  // ===== LINE FOLLOWER =====
   int L = digitalRead(IR_LEFT);
   int C = digitalRead(IR_CENTER);
   int R = digitalRead(IR_RIGHT);
 
-  Serial.print("L:"); Serial.print(L);
-  Serial.print(" C:"); Serial.print(C);
-  Serial.print(" R:"); Serial.print(R);
-  Serial.print("  →  ");
-
-  // ===== NORMAL LOGIC (1 = BLACK LINE) =====
-
-  // Perfect center
   if (L == 0 && C == 1 && R == 0) {
     moveForward();
   }
-
-  // Slight right drift (right sensor on line)
   else if (L == 0 && C == 1 && R == 1) {
     gentleRight();
   }
-
-  // Slight left drift (left sensor on line)
   else if (L == 1 && C == 1 && R == 0) {
     gentleLeft();
   }
-
-  // Sharp right turn
   else if (L == 0 && C == 0 && R == 1) {
     pivotRight();
   }
-
-  // Sharp left turn
   else if (L == 1 && C == 0 && R == 0) {
     pivotLeft();
   }
-
-  // All black (intersection)
   else if (L == 1 && C == 1 && R == 1) {
     moveForward();
   }
-
-  // Lost line
   else {
     stopMotors();
   }
@@ -81,14 +114,25 @@ void loop() {
   delay(10);
 }
 
-// ==================== MOTOR FUNCTIONS ====================
+// ==================== WIFI CONNECT FUNCTION ====================
+void connectToServer() {
 
+  Serial.println("Connecting to TCP server...");
+
+  while (!client.connect(serverIP, serverPort)) {
+    Serial.println("Connection failed. Retrying...");
+    delay(2000);
+  }
+
+  Serial.println("Connected to TCP server!");
+}
+
+// ==================== MOTOR FUNCTIONS ====================
 void moveForward() {
   digitalWrite(IN1, HIGH);
   digitalWrite(IN3, HIGH);
   analogWrite(ENA, FORWARD_SPEED);
   analogWrite(ENB, FORWARD_SPEED);
-  Serial.println("FORWARD");
 }
 
 void gentleRight() {
@@ -96,7 +140,6 @@ void gentleRight() {
   digitalWrite(IN3, HIGH);
   analogWrite(ENA, FORWARD_SPEED);
   analogWrite(ENB, TURN_SPEED);
-  Serial.println("GENTLE RIGHT");
 }
 
 void gentleLeft() {
@@ -104,7 +147,6 @@ void gentleLeft() {
   digitalWrite(IN3, HIGH);
   analogWrite(ENA, TURN_SPEED);
   analogWrite(ENB, FORWARD_SPEED);
-  Serial.println("GENTLE LEFT");
 }
 
 void pivotRight() {
@@ -112,7 +154,6 @@ void pivotRight() {
   digitalWrite(IN3, LOW);
   analogWrite(ENA, PIVOT_SPEED);
   analogWrite(ENB, 0);
-  Serial.println("PIVOT RIGHT");
 }
 
 void pivotLeft() {
@@ -120,7 +161,6 @@ void pivotLeft() {
   digitalWrite(IN3, HIGH);
   analogWrite(ENA, 0);
   analogWrite(ENB, PIVOT_SPEED);
-  Serial.println("PIVOT LEFT");
 }
 
 void stopMotors() {
@@ -128,5 +168,4 @@ void stopMotors() {
   digitalWrite(IN3, LOW);
   analogWrite(ENA, 0);
   analogWrite(ENB, 0);
-  Serial.println("STOP");
 }
